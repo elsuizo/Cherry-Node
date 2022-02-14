@@ -248,13 +248,7 @@ pub mod pallet {
 
 			let multiaddr = OpaqueMultiaddr(addr);
 			<DataQueue<T>>::mutate(|queue| {
-				queue.push(DataCommand::AddBytes(
-					multiaddr,
-					cid,
-					size,
-					sender.clone(),
-					true,
-				))
+				queue.push(DataCommand::AddBytes(multiaddr, cid, size, sender.clone(), true))
 			});
 
 			Self::deposit_event(Event::QueuedDataToAdd(sender.clone()));
@@ -287,29 +281,31 @@ pub mod pallet {
 			Ok(())
 		}
 
-		// /// Extends the duration of an Ipfs asset
-		// #[pallet::weight(0)]
-		// pub fn extend_duration(
-		// 	origin: OriginFor<T>,
-		// 	ci_address: Vec<u8>,
-		// 	fee: BalanceOf<T>,
-		// ) -> DispatchResult {
-		// 	let sender = ensure_signed(origin)?;
+		/// Extends the duration of an Ipfs asset
+		#[pallet::weight(0)]
+		pub fn extend_duration(
+			origin: OriginFor<T>,
+			cid: Vec<u8>,
+			fee: BalanceOf<T>,
+		) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
 
-		// 	ensure!(
-		// 		Self::determine_account_ownership_layer(&ci_address, &sender)? == OwnershipLayer::Owner,
-		// 		<Error<T>>::NotIpfsOwner
-		// 	);
+			ensure!(
+				Self::determine_account_ownership_layer(&cid, &sender)? == OwnershipLayer::Owner,
+				<Error<T>>::NotIpfsOwner
+			);
 
-		// 	let x = TryInto::<u32>::try_into(fee).ok();
-		// 	let extra_duration = x.unwrap() / 16;  // 16 coins per 1 second
-		// 	// let old_duration = <IpfsAsset<T>>::get(&ci_address); //get deleting_at data of cid
-		// 	// let new_duration = old_duration + extra_duration.into();
+			let mut ipfs_asset = Self::ipfs_asset(&cid).ok_or(<Error<T>>::IpfsNotExist)?;
 
-		// 	// update the Ipfs struct with new deleting_at duration.
+			let x = sp_std::convert::TryInto::<u32>::try_into(fee).ok();
+			let extra_duration = x.unwrap() / 16; // 16 coins per 1 second
+			let old_duration = ipfs_asset.deleting_at;
+			let new_duration = old_duration + extra_duration.into();
 
-		// 	Ok(())
-		// }
+			ipfs_asset.deleting_at = BlockNumberFor::<T>::from(new_duration);
+
+			Ok(())
+		}
 
 		/// Pins an IPFS.
 		#[pallet::weight(0)]
@@ -323,9 +319,7 @@ pub mod pallet {
 			let multiaddr = OpaqueMultiaddr(addr);
 			let ipfs_asset = Self::ipfs_asset(&cid).ok_or(<Error<T>>::IpfsNotExist)?;
 
-			ensure!(
-				ipfs_asset.pinned != true, <Error<T>>::IpfsAlreadyPinned
-			);
+			ensure!(ipfs_asset.pinned != true, <Error<T>>::IpfsAlreadyPinned);
 
 			<DataQueue<T>>::mutate(|queue| {
 				queue.push(DataCommand::InsertPin(multiaddr, cid.clone(), sender.clone(), true))
@@ -353,9 +347,7 @@ pub mod pallet {
 			let multiaddr = OpaqueMultiaddr(addr);
 			let ipfs_asset = Self::ipfs_asset(&cid).ok_or(<Error<T>>::IpfsNotExist)?;
 
-			ensure!(
-				ipfs_asset.pinned == true, <Error<T>>::IpfsNotPinned
-			);
+			ensure!(ipfs_asset.pinned == true, <Error<T>>::IpfsNotPinned);
 
 			<DataQueue<T>>::mutate(|queue| {
 				queue.push(DataCommand::RemovePin(multiaddr, cid.clone(), sender.clone(), true))
@@ -385,10 +377,15 @@ pub mod pallet {
 
 			if ipfs_asset.pinned == true {
 				<DataQueue<T>>::mutate(|queue| {
-					queue.push(DataCommand::RemovePin(multiaddr.clone(), cid.clone(), sender.clone(), true))
+					queue.push(DataCommand::RemovePin(
+						multiaddr.clone(),
+						cid.clone(),
+						sender.clone(),
+						true,
+					))
 				});
 			}
-		
+
 			<DataQueue<T>>::mutate(|queue| {
 				queue.push(DataCommand::RemoveBlock(multiaddr, cid.clone(), sender.clone()))
 			});
