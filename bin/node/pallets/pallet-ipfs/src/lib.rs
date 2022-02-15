@@ -185,6 +185,7 @@ pub mod pallet {
 		DeleteIpfsAsset(T::AccountId, Vec<u8>),
 		AddPin(T::AccountId, Vec<u8>),
 		UnpinIpfsAsset(T::AccountId, Vec<u8>),
+		ExtendIpfsAssetDuration(Vec<u8>),
 	}
 
 	// Storage items.
@@ -297,12 +298,14 @@ pub mod pallet {
 
 			let mut ipfs_asset = Self::ipfs_asset(&cid).ok_or(<Error<T>>::IpfsNotExist)?;
 
-			let x = sp_std::convert::TryInto::<u32>::try_into(fee).ok();
-			let extra_duration = x.unwrap() / 16; // 16 coins per 1 second
+			let extra_duration = sp_std::convert::TryInto::<u32>::try_into(fee).ok().unwrap() / 16;
 			let old_duration = ipfs_asset.deleting_at;
 			let new_duration = old_duration + extra_duration.into();
 
 			ipfs_asset.deleting_at = BlockNumberFor::<T>::from(new_duration);
+			<IpfsAsset<T>>::insert(cid.clone(), ipfs_asset);
+
+			Self::deposit_event(Event::ExtendIpfsAssetDuration(cid.clone()));
 
 			Ok(())
 		}
@@ -440,7 +443,8 @@ pub mod pallet {
 
 			<DataQueue<T>>::take();
 
-			let current_block = <frame_system::Pallet<T>>::block_number();
+			let created_at = <frame_system::Pallet<T>>::block_number();
+			let deleting_at = created_at + created_at;
 			let mut gateway_url = "http://15.188.14.75:8080/ipfs/".as_bytes().to_vec();
 			gateway_url.append(&mut cid.clone());
 
@@ -449,8 +453,8 @@ pub mod pallet {
 				size,
 				gateway_url,
 				owners: BTreeMap::<AccountOf<T>, OwnershipLayer>::new(),
-				created_at: current_block,
-				deleting_at: current_block,
+				created_at,
+				deleting_at,
 				pinned: true, // true by default.
 			};
 
