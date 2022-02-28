@@ -92,7 +92,6 @@ pub mod pallet {
 		pub gateway_url: Vec<u8>,
 		pub owners: BTreeMap<AccountOf<T>, OwnershipLayer>,
 		pub created_at: T::BlockNumber,
-		pub deleting_at: T::BlockNumber,
 		pub pinned: bool,
 	}
 
@@ -288,30 +287,6 @@ pub mod pallet {
 			Ok(())
 		}
 
-		// /// Extends the duration of an Ipfs asset
-		// #[pallet::weight(0)]
-		// pub fn extend_duration(
-		// 	origin: OriginFor<T>,
-		// 	ci_address: Vec<u8>,
-		// 	fee: BalanceOf<T>,
-		// ) -> DispatchResult {
-		// 	let sender = ensure_signed(origin)?;
-
-		// 	ensure!(
-		// 		Self::determine_account_ownership_layer(&ci_address, &sender)? == OwnershipLayer::Owner,
-		// 		<Error<T>>::NotIpfsOwner
-		// 	);
-
-		// 	let x = TryInto::<u32>::try_into(fee).ok();
-		// 	let extra_duration = x.unwrap() / 16;  // 16 coins per 1 second
-		// 	// let old_duration = <IpfsAsset<T>>::get(&ci_address); //get deleting_at data of cid
-		// 	// let new_duration = old_duration + extra_duration.into();
-
-		// 	// update the Ipfs struct with new deleting_at duration.
-
-		// 	Ok(())
-		// }
-
 		/// Pins an IPFS.
 		#[pallet::weight(0)]
 		pub fn pin_ipfs_asset(origin: OriginFor<T>, addr: Vec<u8>, cid: Vec<u8>) -> DispatchResult {
@@ -455,7 +430,6 @@ pub mod pallet {
 				gateway_url,
 				owners: BTreeMap::<AccountOf<T>, OwnershipLayer>::new(),
 				created_at: current_block,
-				deleting_at: current_block,
 				pinned: true, // true by default.
 			};
 
