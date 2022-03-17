@@ -79,6 +79,7 @@ pub struct CallRequest<AccountId> {
 	dest: AccountId,
 	value: NumberOrHex,
 	gas_limit: NumberOrHex,
+	storage_deposit_limit: Option<NumberOrHex>,
 	input_data: Bytes,
 }
 
@@ -179,7 +180,8 @@ where
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
-		let CallRequest { origin, dest, value, gas_limit, input_data } = call_request;
+		let CallRequest { origin, dest, value, gas_limit, storage_deposit_limit, input_data } =
+			call_request;
 
 		let value: Balance = decode_hex(value, "balance")?;
 		let gas_limit: Weight = decode_hex(gas_limit, "weight")?;
