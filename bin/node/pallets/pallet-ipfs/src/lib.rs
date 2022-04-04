@@ -80,7 +80,7 @@ pub mod pallet {
 	use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
 	pub type AccountOf<T> = <T as frame_system::Config>::AccountId;
-	type BalanceOf<T> =
+	pub type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	///  Struct for holding IPFS information.
